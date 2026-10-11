@@ -1,0 +1,18 @@
+{
+  "name": "تقويمي – مهام",
+  "short_name": "تقويمي",
+  "description": "تقويم هجري / ميلادي لتسجيل المهام والمناسبات اليومية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#303030",
+  "theme_color": "#42124e",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

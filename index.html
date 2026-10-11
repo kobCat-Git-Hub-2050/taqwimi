@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#42124e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>تقويمي – مهام</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bar:#42124e; --bar2:#5a1a6b; --bg:#303030; --panel:#383838; --cell:#424242; --text:#ececec; --muted:#a9a9a9;
+  --purple:#c07ad8; --orange:#f49426; --today:#8aab1c; --accent:#8e3aa5; --danger:#c0392b; --line:#555;
+  --c-empty:#424242; --c-reg:#1d4f8f; --c-done:#1f7a3d;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",Tahoma,"Noto Sans Arabic","Droid Arabic Naskh","Droid Sans Arabic",system-ui,sans-serif;direction:rtl;overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hide{display:none!important}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:960px;margin:0 auto;position:relative}
+
+/* ---- top bar ---- */
+.topbar{background:var(--bar);padding:calc(var(--safe-t) + 4px) 6px 4px 4px;display:flex;align-items:center;gap:2px;min-height:56px;flex:none}
+.topbar h1{margin:0 8px;font-size:21px;font-weight:600;flex:1;letter-spacing:.2px}
+.ib{width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:#fff;position:relative}
+.ib:active{background:rgba(255,255,255,.14)}
+.ib svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib .tn{position:absolute;left:0;right:0;top:19px;text-align:center;font-size:11px;font-weight:700;line-height:14px}
+
+/* ---- month header ---- */
+.mhead{display:flex;align-items:center;padding:8px 6px 2px;flex:none}
+.mhead .nav{width:48px;height:48px;border:0;background:transparent;font-size:30px;line-height:1;color:#fff;border-radius:50%}
+.mhead .nav:active{background:rgba(255,255,255,.12)}
+.mtitle{flex:1;text-align:center;background:none;border:0;padding:2px 4px}
+.mtitle b{display:block;font-size:22px;font-weight:700;color:#f0f0f0}
+.mtitle span{display:block;font-size:15px;color:var(--orange);margin-top:2px}
+.yearnav{display:flex;justify-content:space-between;align-items:center;padding:0 10px 4px;flex:none;font-size:13px}
+.yearnav button{border:1px solid #5d5d5d;background:#3a3a3a;border-radius:16px;padding:4px 12px;color:#ddd;font-size:13px}
+.yearnav button:active{background:#4a4a4a}
+.wd{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:2px 4px;flex:none;text-align:center;color:#c9c9c9;font-size:13px}
+.wd div.fri{color:#e0b3ee}
+
+/* ---- grid ---- */
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(60px,1fr);gap:4px;padding:4px;overflow-y:auto;touch-action:pan-y}
+.cell{background:var(--c-empty);border-radius:7px;padding:3px 6px 3px;display:flex;flex-direction:column;align-items:stretch;min-width:0;position:relative;cursor:pointer;border:3px solid transparent;overflow:hidden;text-align:start}
+.cell.blank{background:transparent;cursor:default;pointer-events:none}
+.cell .p{font-size:19px;font-weight:700;line-height:1.15;color:#f2f2f2}
+.cell .s{font-size:13px;line-height:1.1;font-weight:500}
+.cell .s.m1{color:var(--purple)} .cell .s.m2{color:var(--orange)}
+.cell.reg{background:var(--c-reg)} .cell.done{background:var(--c-done)}
+.cell.today{border-color:var(--today)}
+.cell.sel{outline:2px solid #fff;outline-offset:-2px}
+.cell:active{filter:brightness(1.25)}
+.cell .ev{margin-top:0;font-size:10px;line-height:1.3;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .ev:first-of-type{margin-top:auto}
+.cell .ev i{font-style:normal;opacity:.8;display:inline-block}
+.cell .od{position:absolute;top:5px;left:5px;width:7px;height:7px;border-radius:50%;background:#ff5a4a;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.cell.reg .s.m1,.cell.done .s.m1{color:#e6b8f5}
+.legend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:6px 8px calc(var(--safe-b) + 8px);font-size:12px;color:#c4c4c4;flex:none}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid rgba(255,255,255,.25)}
+
+/* ---- menu ---- */
+.menu{position:absolute;top:calc(var(--safe-t) + 50px);left:8px;background:#3d3d3d;border-radius:10px;min-width:210px;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:30;padding:6px 0;overflow:hidden}
+.menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:start;background:none;border:0;padding:13px 16px;font-size:15px}
+.menu button:active{background:#505050}
+.menu hr{border:0;border-top:1px solid #555;margin:4px 0}
+
+/* ---- modal ---- */
+.back{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);width:100%;max-width:560px;max-height:94vh;max-height:94dvh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(var(--safe-b) + 16px);box-shadow:0 -6px 30px rgba(0,0,0,.5);animation:up .18s ease-out}
+.sheet.full{max-width:760px;height:94dvh}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+@media (min-width:700px){.back{align-items:center}.sheet{border-radius:16px}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h2{margin:0 0 4px;font-size:19px}
+.sheet .sub{color:var(--orange);font-size:14px;margin-bottom:12px}
+.shead{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.shead>div{flex:1}
+.x{border:0;background:#4a4a4a;color:#fff;width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1}
+
+/* ---- forms ---- */
+label.f{display:block;margin:12px 0 5px;font-size:14px;color:#d6d6d6}
+.in,.sheet input[type=text],.sheet input[type=password],.sheet input[type=date],.sheet input[type=tel],.sheet input[type=number],.sheet select,.sheet textarea,.auth input{width:100%;background:#2a2a2a;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:16px;outline:none}
+.sheet input:focus,.sheet select:focus,.sheet textarea:focus,.auth input:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(192,122,216,.25)}
+.sheet textarea{min-height:84px;resize:vertical}
+input.ltr{direction:ltr;text-align:right}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.chip{border:1px solid #666;background:#303030;border-radius:15px;padding:4px 11px;font-size:13px;color:#ddd}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.hint{font-size:13px;color:var(--orange);margin-top:5px}
+.err{background:#5a1f1f;color:#ffd6d2;border-radius:8px;padding:9px 12px;margin:10px 0;font-size:14px}
+.btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn{flex:1;min-width:110px;border:0;border-radius:10px;padding:13px 14px;font-size:16px;font-weight:600;background:var(--accent);color:#fff}
+.btn.sec{background:#505050}.btn.danger{background:var(--danger)}.btn.ghost{background:transparent;border:1px solid #666}
+.btn:active{filter:brightness(1.2)}
+.btn.sm{padding:8px 12px;font-size:14px;min-width:0;flex:none}
+.sw{display:flex;align-items:center;justify-content:space-between;background:#2f2f2f;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:14px}
+.sw input{display:none}
+.sw .tg{width:50px;height:28px;border-radius:14px;background:#666;position:relative;transition:background .15s;flex:none}
+.sw .tg::after{content:"";position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+.tg{background:#2f9e55}.sw input:checked+.tg::after{transform:translateX(-22px)}
+.seg{display:flex;background:#2a2a2a;border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;border-radius:8px;padding:9px;background:transparent;color:#ccc;font-size:15px}
+.seg button.on{background:var(--accent);color:#fff}
+.step{display:flex;align-items:center;gap:12px;justify-content:center;margin:8px 0}
+.step button{width:46px;height:46px;border-radius:50%;border:0;background:#505050;font-size:26px;color:#fff}
+.step.num{direction:ltr}
+.step b{min-width:70px;text-align:center;font-size:24px;direction:ltr}
+.sec-t{font-size:13px;color:var(--purple);margin:20px 0 4px;font-weight:700;border-bottom:1px solid #4a4a4a;padding-bottom:5px}
+.colors{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.colors label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;color:#ccc}
+.colors input[type=color]{width:54px;height:36px;border:1px solid #777;border-radius:8px;background:none;padding:2px}
+
+/* ---- entries ---- */
+.ent{background:#2f2f2f;border-radius:11px;padding:11px 12px;margin:9px 0;border-inline-start:5px solid var(--c-reg)}
+.ent.done{border-inline-start-color:#37b866}
+.ent .t{display:flex;gap:8px;align-items:center}
+.ent .t b{font-size:16px;flex:1}
+.ent .meta{font-size:14px;color:#cfcfcf;margin-top:4px;line-height:1.7}
+.ent .meta a{color:#e0b3ee;text-decoration:none}
+.ent .money{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:4px}
+.ent .money span b{color:#fff}
+.ent .note{font-size:13px;color:#b8b8b8;margin-top:5px;white-space:pre-wrap;word-break:break-word}
+.tick{border:2px solid #777;background:transparent;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;color:transparent;font-size:19px}
+.ent.done .tick{background:#2f9e55;border-color:#2f9e55;color:#fff}
+.pill{font-size:12px;border-radius:10px;padding:2px 9px;background:#555;color:#eee}
+.pill.ok{background:#256b40}.pill.wait{background:#1d4f8f}
+.empty{text-align:center;color:#999;padding:26px 8px;font-size:15px}
+.tot{display:flex;gap:16px;flex-wrap:wrap;background:#2a2a2a;border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px}
+.tot b{color:#fff}
+.keys{display:grid;grid-template-columns:repeat(3,76px);gap:14px;justify-content:center;margin:20px 0 6px;direction:ltr}
+.keys button{width:76px;height:76px;border-radius:50%;border:1px solid #666;background:#3a3a3a;font-size:28px;color:#fff}
+.keys button:active{background:#5a5a5a}.keys button.o{border-color:transparent;background:transparent;font-size:18px;color:#ccc}
+.dots{display:flex;gap:14px;justify-content:center;margin:18px 0 4px;direction:ltr;min-height:18px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid #aaa}.dots i.on{background:#fff;border-color:#fff}
+.dots.bad{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+
+/* ---- auth ---- */
+.auth{position:fixed;inset:0;z-index:60;background:radial-gradient(120% 90% at 50% 0%,#5a1a6b 0%,#2c1033 55%,#242424 100%);display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+.auth .card{width:100%;max-width:420px;background:rgba(30,30,30,.82);border:1px solid #5b3a66;border-radius:18px;padding:22px 20px 20px;backdrop-filter:blur(6px)}
+.auth .logo{display:grid;place-items:center;margin-bottom:6px}
+.auth .logo svg{width:64px;height:64px}
+.auth h2{text-align:center;margin:6px 0 2px;font-size:22px}
+.auth p.d{text-align:center;color:#c9b2d3;margin:0 0 10px;font-size:14px}
+.auth label{display:block;margin:12px 0 5px;font-size:14px;color:#ddd}
+.auth .lk{display:block;text-align:center;margin-top:14px;color:#e0b3ee;font-size:14px;background:none;border:0;width:100%;padding:6px}
+
+.toast{position:fixed;top:calc(var(--safe-t) + 66px);left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 18px;border-radius:24px;z-index:90;font-size:14px;box-shadow:0 6px 22px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+.conv{background:#2f2f2f;border-radius:12px;padding:12px;margin-top:12px}
+.conv .res{margin-top:8px;font-size:17px;font-weight:700;color:#fff;min-height:26px}
+.conv .res small{display:block;font-size:13px;color:var(--orange);font-weight:400}
+@media (max-width:420px){.cell .p{font-size:17px}.cell .s{font-size:12px}.cell{padding:2px 4px}.keys{grid-template-columns:repeat(3,68px)}.keys button{width:68px;height:68px}}
+@media (hover:hover){.cell:not(.blank):hover{filter:brightness(1.18)}}
+
+.warn{background:#6b4a00;color:#fff3d6;font-size:12.5px;line-height:1.55;padding:7px 10px;display:flex;gap:8px;align-items:center;flex:none}
+.warn span{flex:1}
+.warn button{border:1px solid rgba(255,255,255,.45);background:transparent;color:#fff;border-radius:14px;padding:3px 10px;font-size:12px;white-space:nowrap}
+
+</style>
+</head>
+<body>
+<div id="app" class="hide">
+  <header class="topbar">
+    <h1>تقويمي</h1>
+    <button class="ib" data-act="today" aria-label="اليوم" title="اليوم"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg><span class="tn" id="tn"></span></button>
+    <button class="ib" data-act="add" aria-label="إضافة مناسبة أو مهمة" title="إضافة"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="ib" data-act="conv" aria-label="تحويل التاريخ" title="تحويل التاريخ"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8M7 21l-4-4 4-4M3 17h13"/></svg></button>
+    <button class="ib" data-act="menu" aria-label="القائمة" title="القائمة"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.7" fill="#fff"/><circle cx="12" cy="12" r="1.7" fill="#fff"/><circle cx="12" cy="19" r="1.7" fill="#fff"/></svg></button>
+  </header>
+  <div class="warn hide" id="warn"><span>نسخة غير مثبّتة (ملف أو عنوان مؤقت): قد لا تبقى بياناتك. صدّر نسخة Excel احتياطية بانتظام.</span><button data-act="exportNow">تصدير الآن</button><button data-act="warnx" aria-label="إخفاء التنبيه">×</button></div>
+  <nav class="menu hide" id="menu">
+    <button data-act="search">🔎 بحث وقائمة المهام</button>
+    <button data-act="settings">⚙️ الإعدادات</button>
+    <hr>
+    <button data-act="export">📤 تصدير إلى Excel 97-2003</button>
+    <button data-act="import">📥 استيراد من Excel 97-2003</button>
+    <hr>
+    <button data-act="lock">🔒 قفل التطبيق</button>
+    <button data-act="logout">🚪 تسجيل الخروج</button>
+  </nav>
+  <div class="mhead">
+    <button class="nav" data-act="prev" aria-label="الشهر السابق">»</button>
+    <button class="mtitle" id="mtitle" data-act="jump" aria-label="الانتقال إلى شهر"><b></b><span></span></button>
+    <button class="nav" data-act="next" aria-label="الشهر التالي">«</button>
+  </div>
+  <div class="yearnav"><button data-act="prevY">السنة السابقة</button><button data-act="today">اليوم</button><button data-act="nextY">السنة التالية</button></div>
+  <div class="wd" id="wd"></div>
+  <main class="grid" id="grid" aria-live="polite"></main>
+  <footer class="legend">
+    <span><i style="background:var(--c-empty)"></i>فارغ</span>
+    <span><i style="background:var(--c-reg)"></i>مسجّلة (لم تنجز)</span>
+    <span><i style="background:var(--c-done)"></i>منجزة</span>
+    <span><i style="background:#ff5a4a;border-radius:50%"></i>متأخرة</span>
+  </footer>
+</div>
+<input type="file" id="file" class="hide" accept=".xls,application/vnd.ms-excel">
+<script>
+/* ===== Excel 97-2003 (BIFF8 / OLE2) reader ===== */
+const XLSR = (function () {
+  const NOSTREAM = 0xFFFFFFFA;
+  function oleParse(b) {
+    const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    const sig = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+    if (b.length < 512) throw new Error('bad');
+    for (let i = 0; i < 8; i++) if (b[i] !== sig[i]) throw new Error('bad');
+    const secSize = 1 << dv.getUint16(0x1E, true), miniSize = 1 << dv.getUint16(0x20, true);
+    const dirStart = dv.getUint32(0x30, true), miniCutoff = dv.getUint32(0x38, true);
+    const miniFatStart = dv.getUint32(0x3C, true);
+    const difatStart = dv.getUint32(0x44, true), nDifat = dv.getUint32(0x48, true);
+    const secOff = s => (s + 1) * secSize;
+    const fatSecs = [];
+    for (let i = 0; i < 109; i++) { const s = dv.getUint32(0x4C + 4 * i, true); if (s < NOSTREAM) fatSecs.push(s); }
+    let d = difatStart;
+    for (let k = 0; k < nDifat && d < NOSTREAM; k++) {
+      const off = secOff(d);
+      for (let i = 0; i < secSize / 4 - 1; i++) { const s = dv.getUint32(off + 4 * i, true); if (s < NOSTREAM) fatSecs.push(s); }
+      d = dv.getUint32(off + secSize - 4, true);
+    }
+    const per = secSize / 4, fat = new Uint32Array(fatSecs.length * per);
+    fatSecs.forEach((s, i) => { const off = secOff(s); for (let j = 0; j < per; j++) fat[i * per + j] = dv.getUint32(off + 4 * j, true); });
+    function chain(start, table) {
+      const out = [], seen = new Set(); let s = start;
+      while (s < NOSTREAM && !seen.has(s) && s < table.length) { seen.add(s); out.push(s); s = table[s]; }
+      return out;
+    }
+    function readChain(start) {
+      const secs = chain(start, fat), out = new Uint8Array(secs.length * secSize);
+      secs.forEach((s, i) => { const o = secOff(s); out.set(b.subarray(o, Math.min(o + secSize, b.length)), i * secSize); });
+      return out;
+    }
+    const dir = readChain(dirStart), ddv = new DataView(dir.buffer);
+    const entries = [];
+    for (let i = 0; i + 128 <= dir.length; i += 128) {
+      const nl = ddv.getUint16(i + 64, true);
+      let name = '';
+      for (let k = 0; k < Math.max(0, nl / 2 - 1) && k < 31; k++) name += String.fromCharCode(ddv.getUint16(i + 2 * k, true));
+      entries.push({ name, type: dir[i + 66], start: ddv.getUint32(i + 116, true), size: ddv.getUint32(i + 120, true) });
+    }
+    const root = entries[0];
+    let mini = null, miniFat = null;
+    function getStream(e) {
+      if (e.size < miniCutoff) {
+        if (!mini) {
+          mini = readChain(root.start);
+          const mf = readChain(miniFatStart), mdv = new DataView(mf.buffer);
+          miniFat = new Uint32Array(mf.length / 4);
+          for (let i = 0; i < miniFat.length; i++) miniFat[i] = mdv.getUint32(4 * i, true);
+        }
+        const secs = chain(e.start, miniFat), out = new Uint8Array(secs.length * miniSize);
+        secs.forEach((s, i) => out.set(mini.subarray(s * miniSize, (s + 1) * miniSize), i * miniSize));
+        return out.subarray(0, e.size);
+      }
+      return readChain(e.start).subarray(0, e.size);
+    }
+    return { entries, getStream };
+  }
+
+  class Chunks {
+    constructor(list) { this.c = list; this.i = 0; this.p = 0; }
+    _norm() { while (this.i < this.c.length - 1 && this.p >= this.c[this.i].length) { this.i++; this.p = 0; } }
+    u8() { this._norm(); return this.c[this.i][this.p++]; }
+    u16() { const a = this.u8(); return a | (this.u8() << 8); }
+    u32() { const a = this.u16(); return (a + this.u16() * 65536) >>> 0; }
+    skip(n) { while (n > 0) { this._norm(); const left = this.c[this.i].length - this.p; if (left <= 0) return; const t = Math.min(n, left); this.p += t; n -= t; } }
+    chars(cch, wide) {
+      let s = '';
+      while (cch > 0) {
+        if (this.p >= this.c[this.i].length) {
+          if (this.i >= this.c.length - 1) break;
+          this.i++; this.p = 0; wide = (this.c[this.i][this.p++] & 1) === 1; continue;
+        }
+        if (wide) {
+          if (this.p + 1 >= this.c[this.i].length) { this.p++; continue; }
+          const ch = this.c[this.i][this.p] | (this.c[this.i][this.p + 1] << 8); this.p += 2; s += String.fromCharCode(ch);
+        } else { s += String.fromCharCode(this.c[this.i][this.p++]); }
+        cch--;
+      }
+      return s;
+    }
+    str() { // XLUnicodeRichExtendedString (with u16 cch)
+      const cch = this.u16(), fl = this.u8();
+      let cRun = 0, cb = 0;
+      if (fl & 8) cRun = this.u16();
+      if (fl & 4) cb = this.u32();
+      const s = this.chars(cch, (fl & 1) === 1);
+      if (cRun) this.skip(cRun * 4);
+      if (cb) this.skip(cb);
+      return s;
+    }
+  }
+
+  function rkVal(v) {
+    let x;
+    if (v & 2) x = (v | 0) >> 2;
+    else { const bf = new DataView(new ArrayBuffer(8)); bf.setUint32(4, (v & 0xFFFFFFFC) >>> 0, true); x = bf.getFloat64(0, true); }
+    return (v & 1) ? x / 100 : x;
+  }
+
+  function decodeBytes(arr, cp) {
+    try { return new TextDecoder(cp === 1256 ? 'windows-1256' : 'windows-1252').decode(arr); }
+    catch (e) { let s = ''; for (const x of arr) s += String.fromCharCode(x); return s; }
+  }
+
+  // Returns { sheets:[{name, rows:[[...]]}], date1904 }
+  function read(u8) {
+    let ole;
+    try { ole = oleParse(u8); } catch (e) { throw new Error('الملف ليس بصيغة إكسل 97-2003 (.xls) صالحة'); }
+    let ent = ole.entries.find(e => e.type === 2 && (e.name === 'Workbook' || e.name === 'Book'));
+    if (!ent) throw new Error('لم يتم العثور على بيانات الجدول داخل الملف');
+    const wb = ole.getStream(ent), dv = new DataView(wb.buffer, wb.byteOffset, wb.byteLength);
+    const recs = [];
+    for (let pos = 0; pos + 4 <= wb.length;) {
+      const t = dv.getUint16(pos, true), l = dv.getUint16(pos + 2, true);
+      if (pos + 4 + l > wb.length) break;
+      recs.push({ t, pos, d: wb.subarray(pos + 4, pos + 4 + l) });
+      pos += 4 + l;
+    }
+    if (!recs.length || recs[0].t !== 0x0809) throw new Error('بنية ملف إكسل غير مدعومة');
+    const biff8 = (recs[0].d[1] << 8 | recs[0].d[0]) >= 0x0600;
+    let date1904 = false, codepage = 1252; const sst = [], bounds = [];
+    const dview = d => new DataView(d.buffer, d.byteOffset, d.byteLength);
+    // globals
+    let depth = 0, gEnd = recs.length;
+    for (let i = 0; i < recs.length; i++) {
+      const r = recs[i];
+      if (r.t === 0x0809) depth++;
+      else if (r.t === 0x000A) { depth--; if (depth <= 0) { gEnd = i; break; } }
+      else if (depth === 1) {
+        if (r.t === 0x0022) date1904 = dview(r.d).getUint16(0, true) === 1;
+        else if (r.t === 0x0042) codepage = dview(r.d).getUint16(0, true);
+        else if (r.t === 0x0085) {
+          const v = dview(r.d), cch = r.d[6];
+          let name;
+          if (biff8) { const fl = r.d[7]; name = new Chunks([r.d.subarray(8)]).chars(cch, (fl & 1) === 1); }
+          else name = decodeBytes(r.d.subarray(7, 7 + cch), codepage);
+          bounds.push({ pos: v.getUint32(0, true), type: r.d[5], state: r.d[4], name });
+        } else if (r.t === 0x00FC && biff8) {
+          const chunks = [r.d]; let j = i + 1;
+          while (j < recs.length && recs[j].t === 0x003C) { chunks.push(recs[j].d); j++; }
+          const rd = new Chunks(chunks); rd.u32(); const uniq = rd.u32();
+          for (let k = 0; k < uniq; k++) { try { sst.push(rd.str()); } catch (e) { break; } }
+        }
+      }
+    }
+    const byPos = new Map(recs.map((r, i) => [r.pos, i]));
+    const sheets = [];
+    for (const bs of bounds) {
+      if (bs.type !== 0) continue;
+      let i = byPos.get(bs.pos); if (i === undefined) continue;
+      const grid = []; let d = 0, lastFormula = null;
+      const put = (r, c, v) => { if (r > 65535 || c > 255) return; (grid[r] || (grid[r] = []))[c] = v; };
+      for (; i < recs.length; i++) {
+        const r = recs[i], dd = r.d, v = dview(dd);
+        if (r.t === 0x0809) { d++; continue; }
+        if (r.t === 0x000A) { d--; if (d <= 0) break; continue; }
+        if (d !== 1) continue;
+        switch (r.t) {
+          case 0x00FD: put(v.getUint16(0, true), v.getUint16(2, true), sst[v.getUint32(6, true)] ?? ''); break;
+          case 0x0204: {
+            const rr = v.getUint16(0, true), cc = v.getUint16(2, true), cch = v.getUint16(6, true);
+            if (biff8) put(rr, cc, new Chunks([dd.subarray(8 + 1)]).chars(cch, (dd[8] & 1) === 1));
+            else put(rr, cc, decodeBytes(dd.subarray(8, 8 + cch), codepage));
+            break;
+          }
+          case 0x0203: put(v.getUint16(0, true), v.getUint16(2, true), v.getFloat64(6, true)); break;
+          case 0x027E: put(v.getUint16(0, true), v.getUint16(2, true), rkVal(v.getUint32(6, true))); break;
+          case 0x00BD: {
+            const rr = v.getUint16(0, true), c1 = v.getUint16(2, true), n = (dd.length - 6) / 6 | 0;
+            for (let k = 0; k < n; k++) put(rr, c1 + k, rkVal(v.getUint32(4 + 6 * k + 2, true)));
+            break;
+          }
+          case 0x0205: if (dd[7] === 0) put(v.getUint16(0, true), v.getUint16(2, true), dd[6] ? 1 : 0); break;
+          case 0x0006: {
+            const rr = v.getUint16(0, true), cc = v.getUint16(2, true);
+            if (dd[12] === 0xFF && dd[13] === 0xFF) {
+              if (dd[6] === 0) lastFormula = [rr, cc];
+              else if (dd[6] === 1) put(rr, cc, dd[8] ? 1 : 0);
+              else if (dd[6] === 3) put(rr, cc, '');
+            } else put(rr, cc, v.getFloat64(6, true));
+            break;
+          }
+          case 0x0207:
+            if (lastFormula) {
+              const cch = v.getUint16(0, true);
+              put(lastFormula[0], lastFormula[1], biff8 ? new Chunks([dd.subarray(3)]).chars(cch, (dd[2] & 1) === 1) : decodeBytes(dd.subarray(2, 2 + cch), codepage));
+              lastFormula = null;
+            }
+            break;
+        }
+      }
+      const rows = []; const n = grid.length;
+      for (let r = 0; r < n; r++) rows.push(Array.from(grid[r] || [], x => x === undefined ? '' : x));
+      sheets.push({ name: bs.name, rows, hidden: bs.state !== 0 });
+    }
+    return { sheets, date1904, _recs: recs, _wb: wb };
+  }
+  return { read, oleParse };
+})();
+
+</script>
+<script>
+/* ===== Excel 97-2003 (BIFF8 inside OLE2) writer ===== */
+const XLSW = (function () {
+  const te = s => { const a = new Uint8Array(s.length * 2); for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a[2 * i] = c & 255; a[2 * i + 1] = c >> 8; } return a; };
+  function cat(parts) { let n = 0; for (const p of parts) n += p.length; const o = new Uint8Array(n); let k = 0; for (const p of parts) { o.set(p, k); k += p.length; } return o; }
+  const U16 = n => [n & 255, (n >> 8) & 255];
+  const U32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  const hex = h => Uint8Array.from(h.match(/../g) || [], x => parseInt(x, 16));
+  function rec(t, data) { data = data instanceof Uint8Array ? data : Uint8Array.from(data); return cat([Uint8Array.from([...U16(t), ...U16(data.length)]), data]); }
+  function f64(x) { const b = new DataView(new ArrayBuffer(8)); b.setFloat64(0, x, true); return new Uint8Array(b.buffer); }
+  const R = (t, h) => rec(t, hex(h));                 // record from hex payload
+  function ustr16(s) { return cat([Uint8Array.from([...U16(s.length), 1]), te(s)]); }
+
+  function font(h, italic, icv, bold, name) {
+    return rec(0x0031, cat([Uint8Array.from([...U16(h), ...U16(italic ? 2 : 0), ...U16(icv), ...U16(bold ? 700 : 400), ...U16(0), 0, 2, 1, 0, name.length, 1]), te(name)]));
+  }
+  // XF record (20 bytes)
+  function xf(o) {
+    const flags1 = o.style ? 0xFFF5 : (1 | ((o.parent || 0) << 4));
+    const flags2 = (o.alc || 0) | ((o.wrap ? 1 : 0) << 3) | ((o.alcV === undefined ? 2 : o.alcV) << 4);
+    const b = o.border || 0, bc = o.borderColor || 0;
+    const border1 = b | (b << 4) | (b << 8) | (b << 12);
+    const border2 = bc | (bc << 7);
+    const border3 = (bc | (bc << 7) | ((o.fill ? 1 : 0) << 26)) >>> 0;
+    const fill = o.fill ? (o.fill | (0x41 << 7)) : (0x40 | (0x41 << 7));
+    return rec(0x00E0, Uint8Array.from([...U16(o.font || 0), ...U16(o.fmt || 0), ...U16(flags1), flags2, 0, 0, o.used || 0,
+      ...U16(border1), ...U16(border2), ...U32(border3), ...U16(fill)]));
+  }
+
+  const BOF = type => R(0x0809, '0006' + (type === 5 ? '0500' : '1000') + 'bb0dcc070000000006000000');
+  const EOF = () => rec(0x000A, []);
+  const sanitizeSheet = s => (String(s).replace(/[:\\\/?*\[\]]/g, ' ').trim() || 'Sheet1').slice(0, 31);
+  const clip = s => { s = String(s); return s.length > 3500 ? s.slice(0, 3500) : s; };
+
+  function buildBiff(rows, o) {
+    const sheetName = sanitizeSheet(o.sheetName || 'Sheet1');
+    const widths = o.widths || [], nCols = Math.max(1, ...rows.map(r => r.length));
+    // ---- globals
+    const wa = new Uint8Array(112).fill(0x20); wa.set([7, 0, 0], 0); wa.set([...'Taqwimi'].map(c => c.charCodeAt(0)), 3);
+    const g1 = [
+      BOF(5), R(0x00E1, 'b004'), R(0x00C1, '0000'), rec(0x00E2, []), rec(0x005C, wa), R(0x0042, 'b004'),
+      R(0x013D, '0100'), R(0x009C, '0e00'), R(0x01AF, '0000'), R(0x01BC, '0000'),
+      R(0x003D, '000000000040002038000000000001005802'), R(0x0040, '0000'), R(0x008D, '0000'), R(0x0022, '0000'),
+      R(0x000E, '0100'), R(0x01B7, '0000'), R(0x00DA, '0000'),
+      font(200, 0, 0x7FFF, 0, 'Arial'), font(200, 0, 0x7FFF, 1, 'Arial'), font(200, 1, 0x7FFF, 0, 'Arial'), font(200, 1, 0x7FFF, 1, 'Arial'),
+      font(200, 0, 9, 1, 'Arial'),                       // font index 5: bold white (header)
+    ];
+    // 15 style XFs, default cell XF (15), header XF (16), body XF (17)
+    const xfs = [];
+    const sty = f => xf({ style: true, font: f, alcV: 2, used: 0xF4 });
+    xfs.push(xf({ style: true, font: 0, alcV: 2, used: 0xF4 }));
+    xfs.push(sty(1), sty(1), sty(2), sty(2));
+    for (let i = 0; i < 10; i++) xfs.push(sty(0));
+    xfs.push(xf({ font: 0, alcV: 2 }));                                                   // 15 default
+    xfs.push(xf({ font: 5, alc: 2, alcV: 1, border: 1, borderColor: 23, fill: 28, used: 0x78 })); // 16 header
+    xfs.push(xf({ font: 0, alcV: 1, border: 1, borderColor: 22, used: 0x30 }));            // 17 body
+    const g2 = [...xfs, R(0x0293, '008000ff'), R(0x0160, '0000')];
+    const g3 = [R(0x008C, '01000100'), EOF()];
+    const sizeNoBound = cat([...g1, ...g2]).length + cat(g3).length;
+    const nameBytes = te(sheetName);
+    const bsLen = 4 + 4 + 2 + 2 + nameBytes.length;       // header + payload
+    const sheetPos = sizeNoBound + bsLen;
+    const bound = rec(0x0085, cat([Uint8Array.from([...U32(sheetPos), 0, 0, sheetName.length, 1]), nameBytes]));
+    // ---- sheet
+    const sh = [
+      BOF(0x10), R(0x000C, '6400'), R(0x000F, '0100'), R(0x0011, '0000'), R(0x0010, '2d431cebe2361a3f'), R(0x005F, '0100'),
+      R(0x0080, '0000000000000000'), R(0x0225, '00002c01'), R(0x0081, 'c104'), R(0x002A, '0000'), R(0x002B, '0000'), R(0x0082, '0100'),
+      rec(0x0014, []), rec(0x0015, []), R(0x0083, '0000'), R(0x0084, '0000'),
+      R(0x0026, '000000000000e83f'), R(0x0027, '000000000000e83f'), R(0x0028, '000000000000f03f'), R(0x0029, '000000000000f03f'),
+      R(0x00A1, '0900640000000100010002002c012c01180c0683c160e03f180c0683c160e03f0100'), R(0x0055, '0800'),
+    ];
+    for (let c = 0; c < nCols; c++) {
+      const w = Math.round(((widths[c] || 14) + 0.71) * 256);
+      sh.push(rec(0x007D, Uint8Array.from([...U16(c), ...U16(c), ...U16(w), ...U16(15), ...U16(0), ...U16(0)])));
+    }
+    sh.push(rec(0x0200, Uint8Array.from([...U32(0), ...U32(rows.length), ...U16(0), ...U16(nCols), ...U16(0)])));
+    rows.forEach((row, r) => {
+      sh.push(rec(0x0208, Uint8Array.from([...U16(r), ...U16(0), ...U16(nCols), ...U16(r === 0 ? 400 : 300), ...U16(0), ...U16(0), ...U16(0x0100), ...U16(15)])));
+    });
+    rows.forEach((row, r) => {
+      const ixfe = r === 0 && o.header !== false ? 16 : 17;
+      row.forEach((v, c) => {
+        if (v === null || v === undefined || v === '') return;
+        if (typeof v === 'number' && isFinite(v)) sh.push(rec(0x0203, cat([Uint8Array.from([...U16(r), ...U16(c), ...U16(ixfe)]), f64(v)])));
+        else { const s = clip(v); sh.push(rec(0x0204, cat([Uint8Array.from([...U16(r), ...U16(c), ...U16(ixfe)]), ustr16(s)]))); }
+      });
+    });
+    sh.push(R(0x023E, 'f60600000000400000003c00640000000000'));   // WINDOW2 (grbit 0x06F6 incl. right-to-left sheet)
+    sh.push(R(0x001D, '030000000000000100000000000000'));
+    sh.push(EOF());
+    return cat([...g1, ...g2, bound, ...g3, ...sh]);
+  }
+
+  // ---- OLE2 container (single "Workbook" stream, regular sectors)
+  function wrapOle(stream) {
+    let len = Math.max(4096, Math.ceil(stream.length / 512) * 512);
+    const data = new Uint8Array(len); data.set(stream);
+    const nData = len / 512, dirSec = nData;
+    let nFat = 1; while (nFat * 128 < nData + 1 + nFat) nFat++;
+    const total = nData + 1 + nFat, out = new Uint8Array(512 + total * 512), dv = new DataView(out.buffer);
+    out.set([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1], 0);
+    dv.setUint16(0x18, 0x3E, true); dv.setUint16(0x1A, 3, true); dv.setUint16(0x1C, 0xFFFE, true);
+    dv.setUint16(0x1E, 9, true); dv.setUint16(0x20, 6, true);
+    dv.setUint32(0x2C, nFat, true); dv.setUint32(0x30, dirSec, true); dv.setUint32(0x38, 4096, true);
+    dv.setUint32(0x3C, 0xFFFFFFFE, true); dv.setUint32(0x44, 0xFFFFFFFE, true);
+    for (let i = 0; i < 109; i++) dv.setUint32(0x4C + 4 * i, i < nFat ? dirSec + 1 + i : 0xFFFFFFFF, true);
+    out.set(data, 512);
+    const dOff = 512 + dirSec * 512;
+    function entry(i, name, type, left, right, child, start, size, clsid) {
+      const o = dOff + i * 128;
+      for (let k = 0; k < name.length; k++) dv.setUint16(o + 2 * k, name.charCodeAt(k), true);
+      dv.setUint16(o + 64, name ? (name.length + 1) * 2 : 0, true); out[o + 66] = type; out[o + 67] = 1;
+      dv.setUint32(o + 68, left, true); dv.setUint32(o + 72, right, true); dv.setUint32(o + 76, child, true);
+      if (clsid) out.set(clsid, o + 80);
+      dv.setUint32(o + 116, start, true); dv.setUint32(o + 120, size, true);
+    }
+    entry(0, 'Root Entry', 5, 0xFFFFFFFF, 0xFFFFFFFF, 1, 0xFFFFFFFE, 0, hex('2008020000000000c000000000000046'));
+    entry(1, 'Workbook', 2, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0, len, null);
+    for (let i = 2; i < 4; i++) { const o = dOff + i * 128; dv.setUint32(o + 68, 0xFFFFFFFF, true); dv.setUint32(o + 72, 0xFFFFFFFF, true); dv.setUint32(o + 76, 0xFFFFFFFF, true); out[o + 67] = 0; }
+    // FAT
+    const fOff = 512 + (dirSec + 1) * 512, fdv = new DataView(out.buffer, fOff, nFat * 512);
+    for (let i = 0; i < nFat * 128; i++) fdv.setUint32(4 * i, 0xFFFFFFFF, true);
+    for (let i = 0; i < nData; i++) fdv.setUint32(4 * i, i === nData - 1 ? 0xFFFFFFFE : i + 1, true);
+    fdv.setUint32(4 * dirSec, 0xFFFFFFFE, true);
+    for (let i = 0; i < nFat; i++) fdv.setUint32(4 * (dirSec + 1 + i), 0xFFFFFFFD, true);
+    return out;
+  }
+
+  // rows: array of arrays (strings / numbers). opts: {sheetName, widths:[chars], header:true}
+  function write(rows, opts) { return wrapOle(buildBiff(rows.slice(0, 65535), opts || {})); }
+  return { write };
+})();
+
+</script>
+<script>
+/* SHA-256 (pure JS, works on file:// and plain http) + salted iterated hashing */
+const SHA = (function () {
+  const K = [], H0 = [];
+  (function () {
+    const frac = x => x - Math.floor(x);
+    for (let n = 2, c = 0; c < 64; n++) {
+      let p = true; for (let i = 2; i * i <= n; i++) if (n % i === 0) { p = false; break; }
+      if (!p) continue;
+      if (c < 8) H0[c] = Math.floor(frac(Math.sqrt(n)) * 4294967296) >>> 0;
+      K[c] = Math.floor(frac(Math.cbrt(n)) * 4294967296) >>> 0; c++;
+    }
+  })();
+  const ror = (x, n) => (x >>> n) | (x << (32 - n));
+  function bytes(msg) {
+    const l = msg.length, nb = ((l + 9 + 63) >> 6) << 6, buf = new Uint8Array(nb);
+    buf.set(msg); buf[l] = 0x80;
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(nb - 4, (l * 8) >>> 0); dv.setUint32(nb - 8, Math.floor(l * 8 / 4294967296));
+    const h = H0.slice(), w = new Uint32Array(64);
+    for (let off = 0; off < nb; off += 64) {
+      for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + 4 * i);
+      for (let i = 16; i < 64; i++) {
+        const a = w[i - 15], b = w[i - 2];
+        w[i] = (w[i - 16] + (ror(a, 7) ^ ror(a, 18) ^ (a >>> 3)) + w[i - 7] + (ror(b, 17) ^ ror(b, 19) ^ (b >>> 10))) | 0;
+      }
+      let [a, b, c, d, e, f, g, hh] = h;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (hh + (ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+      h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+    }
+    const out = new Uint8Array(32), od = new DataView(out.buffer);
+    for (let i = 0; i < 8; i++) od.setUint32(4 * i, h[i] >>> 0);
+    return out;
+  }
+  const enc = s => new TextEncoder().encode(s);
+  const hex = u => Array.from(u, x => x.toString(16).padStart(2, '0')).join('');
+  const sha256 = s => hex(bytes(enc(s)));
+  function salted(secret, salt, rounds) {
+    let h = sha256(salt + ':' + secret);
+    for (let i = 0; i < (rounds || 2000); i++) h = sha256(h + salt + secret);
+    return h;
+  }
+  function newSalt() {
+    const a = new Uint8Array(16);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(a);
+    else for (let i = 0; i < 16; i++) a[i] = Math.floor(Math.random() * 256);
+    return hex(a);
+  }
+  return { sha256, salted, newSalt };
+})();
+
+</script>
+<script>
+'use strict';
+(function () {
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const HM = ['محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'];
+const GM = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const WD = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const WDS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+const VERSION = '1.0';
+
+/* ---------- Umm al-Qura table (1300-1600 AH), embedded so it works offline ---------- */
+const HT = {"base":-31826,"Y0":1300,"Y1":1600,"hex":"5552ab9372b657636cb55aaa95649e95d2ba5b53aab4ba9652e2ad56db5a752f25e8ad16a56ab56b4da9b92b2564ba9b35a6d95d4da5d4aa955369752f46e96d46a953525d4bd9ba3b4b69b2aa554ada5d2da6d9eaae94d2ac564aea6d56ad55d4aa9352ba5b53a6b5ea9d52d29a554ad56daea6e4ed1da2aaa95a2da5b9bb27646c95552ab4dbaba5b4da9d52aa592d26d8ed2daad5aa5a4b4979372b6975d69d52c9592b25b4db9d55d2da5d4aa9554daad3aabd2bc4b89a9552d5adb6a6d4dc9d92aa69562ae56d36ab55aaa94d49d95d2ba5b55aad55a9a92e26e55dada6d46a5b27a4d4ad56db5a754f49e92d26a563566b5baab92b2568ba9b55aada5b4da9b52a9a536276575af26d46a95552ad4bd9ba574b69b52a9552da5d4daad96b2e95e2ac9692eaad56ad65d4ad1562bc5b53a6b5db2d64d29a554ad96daea6e8ed1da4d4aa6a2da5b9b72b686d16554ab95b2ba5b5da9d52ca694e46e95d4daad5aaaa4d49b9374b6975d6ad52aa594b2ab55bad95d2dc5d92b25555ab55b4ba97a2745593aab4d69d65d2ba5b4aa954ad15d2dd9da5b45a952d25b8b717656db6aacaa9652b15b2bb5b6daab94d46a8d52da9d55a755749f13e4aa965566b5baab94"};
+const Y0 = HT.Y0, Y1 = HT.Y1, MS = [];
+(function () {
+  let cur = HT.base;
+  for (let y = Y0; y <= Y1; y++) {
+    const mask = parseInt(HT.hex.substr((y - Y0) * 3, 3), 16);
+    for (let m = 0; m < 12; m++) { MS.push(cur); cur += (mask >> m & 1) ? 30 : 29; }
+  }
+  MS.push(cur);
+})();
+const MIN_DAY = MS[0], MAX_DAY = MS[MS.length - 1] - 1;
+const MIN_ISO = '1882-11-12', MAX_ISO = '2174-11-25';
+const dnum = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / 86400000);
+const dparts = n => { const x = new Date(n * 86400000); return { y: x.getUTCFullYear(), m: x.getUTCMonth() + 1, d: x.getUTCDate() }; };
+const p2 = n => String(n).padStart(2, '0');
+const iso = n => { const p = dparts(n); return p.y + '-' + p2(p.m) + '-' + p2(p.d); };
+const isoToN = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? dnum(+m[1], +m[2], +m[3]) : NaN; };
+const wday = n => ((n + 4) % 7 + 7) % 7;
+const todayN = () => { const t = new Date(); return dnum(t.getFullYear(), t.getMonth() + 1, t.getDate()); };
+function msIndex(k) {
+  let lo = 0, hi = MS.length - 2;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (MS[mid] <= k) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+function hij(n, off) {
+  let k = n + off; if (k < MIN_DAY) k = MIN_DAY; if (k > MAX_DAY) k = MAX_DAY;
+  const i = msIndex(k);
+  return { y: Y0 + Math.floor(i / 12), m: (i % 12) + 1, d: k - MS[i] + 1 };
+}
+const hStart = (y, m, off) => MS[(y - Y0) * 12 + m - 1] - off;
+const hLen = (y, m) => { const i = (y - Y0) * 12 + m - 1; return MS[i + 1] - MS[i]; };
+
+/* ---------- helpers ---------- */
+const norm = s => String(s == null ? '' : s).replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632).replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776).replace(/٫/g, '.').replace(/[٬،,]/g, '');
+const num = s => { const t = norm(s).trim(); if (t === '') return null; const v = Number(t); return isFinite(v) ? v : NaN; };
+const money = v => (v == null || v === '') ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+let toastT;
+function toast(msg) {
+  let el = $('.toast'); if (!el) { el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => { const t = $('.toast'); if (t) t.remove(); }, 2800);
+}
+function b64(u8) { let s = ''; const C = 0x8000; for (let i = 0; i < u8.length; i += C) s += String.fromCharCode.apply(null, u8.subarray(i, i + C)); return btoa(s); }
+function saveBytes(name, mime, bytes) {
+  if (window.AndroidBridge && window.AndroidBridge.saveFile) { try { window.AndroidBridge.saveFile(name, mime, b64(bytes)); return; } catch (e) { /* fall through */ } }
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 5000);
+  toast('تم تجهيز الملف: ' + name);
+}
+window.__saved = (ok, msg) => toast(ok ? 'تم حفظ الملف' + (msg ? ': ' + msg : '') : 'لم يتم حفظ الملف');
+
+/* ---------- storage ---------- */
+const LS = {
+  get(k) { try { const v = localStorage.getItem(k); return v == null ? null : JSON.parse(v); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+};
+const SS = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* ignore */ } }, del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* ignore */ } } };
+const DEF_COLORS = { empty: '#424242', reg: '#1d4f8f', done: '#1f7a3d' };
+const users = () => LS.get('tm.users') || [];
+const saveUsers = u => LS.set('tm.users', u);
+function normData(d) {
+  d = d && typeof d === 'object' ? d : {};
+  d.v = 1; d.entries = Array.isArray(d.entries) ? d.entries : [];
+  d.set = Object.assign({ off: 0, view: 'h' }, d.set || {});
+  d.set.colors = Object.assign({}, DEF_COLORS, d.set.colors || {});
+  d.set.off = Math.max(-30, Math.min(30, parseInt(d.set.off, 10) || 0));
+  if (d.set.view !== 'g') d.set.view = 'h';
+  return d;
+}
+
+const S = { user: null, data: null, set: null, view: { y: 1448, m: 1 }, sel: null, hidden: 0 };
+function persist() {
+  if (!S.user) return;
+  if (!LS.set('tm.d.' + S.user.id, S.data)) toast('تعذّر حفظ البيانات على الجهاز (التخزين معطّل أو ممتلئ)');
+}
+function applyColors() {
+  const c = S.set.colors, r = document.documentElement.style;
+  r.setProperty('--c-empty', c.empty); r.setProperty('--c-reg', c.reg); r.setProperty('--c-done', c.done);
+}
+const hStr = n => { const h = hij(n, S.set.off); return h.d + ' ' + HM[h.m - 1] + ' ' + h.y + 'هـ'; };
+const gStr = n => { const p = dparts(n); return p.d + ' ' + GM[p.m - 1] + ' ' + p.y + 'م'; };
+const hNum = n => { const h = hij(n, S.set.off); return h.y + '/' + p2(h.m) + '/' + p2(h.d); };
+const sortEntries = a => a.slice().sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : (x.ts || 0) - (y.ts || 0));
+function entriesOn(n) { const k = iso(n); return sortEntries(S.data.entries.filter(e => e.date === k)); }
+
+/* ---------- modal manager ---------- */
+const stack = [];
+function openModal(html, o) {
+  o = o || {};
+  const back = document.createElement('div'); back.className = 'back';
+  back.innerHTML = '<div class="sheet ' + (o.cls || '') + '" role="dialog" aria-modal="true">' + html + '</div>';
+  const sheet = back.firstElementChild;
+  if (!o.lock) back.addEventListener('mousedown', e => { if (e.target === back) closeModal(sheet); });
+  document.body.appendChild(back); document.documentElement.style.overflow = 'hidden';
+  stack.push({ back, sheet, onClose: o.onClose });
+  return sheet;
+}
+function closeModal(sheet) {
+  let i = stack.length - 1;
+  if (sheet) i = stack.findIndex(m => m.sheet === sheet || m.back === sheet);
+  if (i < 0) return false;
+  const m = stack.splice(i, 1)[0]; m.back.remove();
+  if (!stack.length) document.documentElement.style.overflow = '';
+  if (m.onClose) m.onClose();
+  return true;
+}
+const closeAll = () => { while (stack.length) closeModal(); };
+
+/* ---------- calendar rendering ---------- */
+function viewFor(n) {
+  if (S.set.view === 'h') { const h = hij(n, S.set.off); return { y: h.y, m: h.m }; }
+  const g = dparts(n); return { y: g.y, m: g.m };
+}
+function rangeLabel(a, b, names, suffix) {
+  if (a.y === b.y && a.m === b.m) return names[a.m - 1] + ' ' + a.y + suffix;
+  if (a.y === b.y) return names[a.m - 1] + ' / ' + names[b.m - 1] + ' ' + a.y + suffix;
+  return names[a.m - 1] + ' ' + a.y + ' / ' + names[b.m - 1] + ' ' + b.y + suffix;
+}
+function render() {
+  if (!S.user) return;
+  const off = S.set.off, mode = S.set.view, today = todayN(), v = S.view;
+  let first, len, title, sub;
+  if (mode === 'h') {
+    first = hStart(v.y, v.m, off); len = hLen(v.y, v.m); title = HM[v.m - 1] + ' ' + v.y;
+    sub = rangeLabel(dparts(first), dparts(first + len - 1), GM, '');
+  } else {
+    first = dnum(v.y, v.m, 1); len = dnum(v.m === 12 ? v.y + 1 : v.y, v.m === 12 ? 1 : v.m + 1, 1) - first; title = GM[v.m - 1] + ' ' + v.y;
+    const a = hij(first, off), b = hij(first + len - 1, off); sub = rangeLabel(a, b, HM, 'هـ');
+  }
+  $('#mtitle b').textContent = title; $('#mtitle span').textContent = sub;
+  const by = {}; for (const e of S.data.entries) (by[e.date] || (by[e.date] = [])).push(e);
+  const g0 = dparts(first), h0 = hij(first, off);
+  let html = '';
+  for (let i = wday(first); i > 0; i--) html += '<div class="cell blank"></div>';
+  for (let i = 0; i < len; i++) {
+    const n = first + i, list = by[iso(n)], g = dparts(n);
+    let p, s, c2;
+    if (mode === 'h') { p = i + 1; s = g.d; c2 = (g.y === g0.y && g.m === g0.m) ? 'm1' : 'm2'; }
+    else { const h = hij(n, off); p = g.d; s = h.d; c2 = (h.y === h0.y && h.m === h0.m) ? 'm1' : 'm2'; }
+    let st = '', od = '', ev = '';
+    if (list && list.length) {
+      const pending = list.some(e => !e.done); st = pending ? ' reg' : ' done';
+      if (pending && n < today) od = '<span class="od" title="متأخرة"></span>';
+      const srt = list.slice().sort((x, y) => (x.ts || 0) - (y.ts || 0));
+      ev = srt.slice(0, 2).map(e => '<div class="ev">' + esc(e.type || e.name || e.notes || '•') + '</div>').join('');
+      if (list.length > 2) ev += '<div class="ev"><i dir="ltr">+' + (list.length - 2) + '</i></div>';
+    }
+    html += '<div class="cell' + st + (n === today ? ' today' : '') + (n === S.sel ? ' sel' : '') + '" data-act="day" data-n="' + n + '" role="button" tabindex="0" aria-label="' +
+      esc(WD[wday(n)] + ' ' + hStr(n) + ' ' + gStr(n)) + '"><span class="p">' + p + '</span><span class="s ' + c2 + '">' + s + '</span>' + od + ev + '</div>';
+  }
+  $('#grid').innerHTML = html;
+  $('#tn').textContent = mode === 'h' ? hij(today, off).d : dparts(today).d;
+}
+function navMonth(delta) {
+  const v = S.view;
+  if (S.set.view === 'h') {
+    let i = (v.y - Y0) * 12 + v.m - 1 + delta; i = Math.max(0, Math.min((Y1 - Y0 + 1) * 12 - 1, i));
+    v.y = Y0 + Math.floor(i / 12); v.m = i % 12 + 1;
+  } else {
+    let i = v.y * 12 + v.m - 1 + delta; i = Math.max(1883 * 12, Math.min(2173 * 12 + 11, i));
+    v.y = Math.floor(i / 12); v.m = i % 12 + 1;
+  }
+  render();
+}
+const navYear = d => navMonth(d * 12);
+function goToDay(n, select) { S.view = viewFor(n); if (select) S.sel = n; render(); }
+function gotoToday() { goToDay(todayN(), false); }
+function toggleMenu(force) {
+  const m = $('#menu'), show = force === undefined ? m.classList.contains('hide') : force;
+  m.classList.toggle('hide', !show);
+}
+
+/* ---------- day sheet & entries ---------- */
+function waNum(p) {
+  let d = norm(p).replace(/[^\d]/g, ''); if (!d) return '';
+  if (d.startsWith('00')) d = d.slice(2); else if (d.length === 10 && d.startsWith('05')) d = '966' + d.slice(1); else if (d.length === 9 && d.startsWith('5')) d = '966' + d;
+  return d;
+}
+function entHtml(e) {
+  const tel = norm(e.phone).replace(/[^\d+]/g, ''), wa = waNum(e.phone);
+  return '<div class="ent' + (e.done ? ' done' : '') + '" data-act="edit" data-id="' + e.id + '">' +
+    '<div class="t"><button class="tick" data-act="toggle" data-id="' + e.id + '" aria-label="تبديل حالة الإنجاز">✓</button>' +
+    '<b>' + esc(e.type || 'بدون نوع') + '</b><span class="pill ' + (e.done ? 'ok' : 'wait') + '">' + (e.done ? 'أنجزت' : 'لم تنجز') + '</span></div>' +
+    (e.name ? '<div class="meta">' + esc(e.name) + '</div>' : '') +
+    (e.phone ? '<div class="meta" dir="ltr" style="text-align:right"><a data-act="none" href="tel:' + esc(tel) + '">' + esc(e.phone) + '</a>' +
+      (wa ? ' &nbsp;·&nbsp; <a data-act="none" href="https://wa.me/' + wa + '" target="_blank" rel="noopener">واتساب</a>' : '') + '</div>' : '') +
+    ((e.paid != null || e.rem != null) ? '<div class="money"><span>المدفوع: <b>' + money(e.paid) + '</b></span><span>المتبقي: <b>' + money(e.rem) + '</b></span></div>' : '') +
+    (e.notes ? '<div class="note">' + esc(e.notes) + '</div>' : '') + '</div>';
+}
+let dayOpen = null;
+function daySheetHtml(n) {
+  const list = entriesOn(n);
+  return '<div class="shead"><div><h2>' + esc(WD[wday(n)] + ' ' + hStr(n)) + '</h2><div class="sub">' + esc(gStr(n)) + (n === todayN() ? ' · اليوم' : '') +
+    '</div></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div id="dlist">' + (list.map(entHtml).join('') || '<div class="empty">لا توجد مناسبات أو مهام في هذا اليوم</div>') + '</div>' +
+    '<div class="btns"><button class="btn" data-act="addDay" data-n="' + n + '">+ إضافة مناسبة / مهمة</button></div>';
+}
+function openDay(n) {
+  S.sel = n; render();
+  if (!entriesOn(n).length) { openForm({ date: n }); return; }
+  const sheet = openModal(daySheetHtml(n), { onClose: () => { dayOpen = null; } });
+  dayOpen = { n, sheet };
+}
+function refreshDay() {
+  if (!dayOpen || !stack.some(m => m.sheet === dayOpen.sheet)) return;
+  if (!entriesOn(dayOpen.n).length) closeModal(dayOpen.sheet); else dayOpen.sheet.innerHTML = daySheetHtml(dayOpen.n);
+}
+function confirmDlg(msg, onYes, label) {
+  const s = openModal('<h2>تأكيد</h2><p style="line-height:1.9;margin:8px 0">' + esc(msg) + '</p><div class="btns"><button class="btn danger" id="cy">' + esc(label || 'نعم، متابعة') + '</button><button class="btn sec" id="cn">إلغاء</button></div>', { lock: true });
+  $('#cn', s).onclick = () => closeModal(s);
+  $('#cy', s).onclick = () => { closeModal(s); onYes(); };
+}
+
+/* ---------- entry form ---------- */
+const DEF_TYPES = ['مهمة عمل', 'موعد', 'اجتماع', 'زواج', 'عقد قران', 'مناسبة', 'عزاء', 'سداد / دفعة', 'زيارة', 'أخرى'];
+function typeList() {
+  const cnt = {}; for (const e of S.data.entries) if (e.type) cnt[e.type] = (cnt[e.type] || 0) + 1;
+  return Array.from(new Set(Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).concat(DEF_TYPES)));
+}
+function openForm(opt) {
+  const e = opt.id ? S.data.entries.find(x => x.id === opt.id) : null;
+  if (opt.id && !e) return;
+  const n = e ? isoToN(e.date) : opt.date, types = typeList();
+  const v = x => (x == null ? '' : esc(x));
+  const sheet = openModal(
+    '<div class="shead"><div><h2>' + (e ? 'تعديل' : 'تسجيل') + ' مناسبة / مهمة</h2></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div id="ferr"></div>' +
+    '<label class="f" for="fdate">التاريخ</label><input type="date" id="fdate" value="' + iso(n) + '" min="' + MIN_ISO + '" max="' + MAX_ISO + '"><div class="hint" id="fhij"></div>' +
+    '<label class="f" for="ftype">نوع المناسبة / المهمة</label><input type="text" id="ftype" value="' + v(e && e.type) + '" autocomplete="off" maxlength="80">' +
+    '<div class="chips" id="fchips">' + types.slice(0, 10).map(t => '<button type="button" class="chip" data-type="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' +
+    '<label class="f" for="fname">اسم صاحب المناسبة / المهمة</label><input type="text" id="fname" value="' + v(e && e.name) + '" autocomplete="off" maxlength="120">' +
+    '<label class="f" for="fphone">رقم جوال صاحب المناسبة / المهمة</label><input type="tel" class="ltr" id="fphone" inputmode="tel" value="' + v(e && e.phone) + '" autocomplete="off" maxlength="24">' +
+    '<div class="row2"><div><label class="f" for="fpaid">المبلغ المدفوع</label><input type="text" class="ltr" id="fpaid" inputmode="decimal" value="' + v(e && e.paid) + '" autocomplete="off"></div>' +
+    '<div><label class="f" for="frem">المبلغ المتبقي</label><input type="text" class="ltr" id="frem" inputmode="decimal" value="' + v(e && e.rem) + '" autocomplete="off"></div></div>' +
+    '<label class="f" for="fnotes">ملاحظات</label><textarea id="fnotes" maxlength="3000">' + v(e && e.notes) + '</textarea>' +
+    '<label class="sw"><span>المناسبة / المهمة أنجزت</span><input type="checkbox" id="fdone"' + (e && e.done ? ' checked' : '') + '><span class="tg"></span></label>' +
+    '<div class="btns"><button class="btn" id="fsave">حفظ</button><button class="btn sec" data-act="close">إلغاء</button>' + (e ? '<button class="btn danger" id="fdel">حذف</button>' : '') + '</div>', { lock: true });
+  const f = id => $('#' + id, sheet);
+  const hint = () => { const k = isoToN(f('fdate').value); f('fhij').textContent = isNaN(k) ? '' : 'الموافق: ' + WD[wday(k)] + ' ' + hStr(k); };
+  const markChips = () => $$('.chip', sheet).forEach(c => c.classList.toggle('on', c.dataset.type === f('ftype').value.trim()));
+  f('fdate').addEventListener('input', hint); hint(); markChips();
+  f('ftype').addEventListener('input', markChips);
+  $$('.chip', sheet).forEach(c => c.onclick = () => { f('ftype').value = c.dataset.type; markChips(); });
+  f('fsave').onclick = () => {
+    const err = m => { f('ferr').innerHTML = '<div class="err">' + esc(m) + '</div>'; f('ferr').scrollIntoView({ block: 'nearest' }); };
+    const d = isoToN(f('fdate').value);
+    if (isNaN(d) || d < MIN_DAY || d > MAX_DAY) return err('التاريخ غير صالح أو خارج النطاق المدعوم (1300 – 1600هـ).');
+    const type = f('ftype').value.trim(), name = f('fname').value.trim(), notes = f('fnotes').value.trim(), phone = norm(f('fphone').value).trim();
+    const paid = num(f('fpaid').value), rem = num(f('frem').value);
+    if (!type && !name && !notes) return err('أدخل نوع المناسبة / المهمة أو الاسم أو الملاحظات على الأقل.');
+    if (Number.isNaN(paid) || Number.isNaN(rem)) return err('المبلغ يجب أن يكون رقمًا صحيحًا.');
+    if (phone && !/^[+\d\s\-()]{5,24}$/.test(phone)) return err('رقم الجوال غير صالح.');
+    const rec = { date: iso(d), type, name, phone, paid, rem, notes, done: f('fdone').checked };
+    if (e) Object.assign(e, rec, { upd: Date.now() }); else S.data.entries.push(Object.assign({ id: uid(), ts: Date.now() }, rec));
+    persist(); closeModal(sheet); S.sel = d; render(); refreshDay(); toast('تم الحفظ');
+  };
+  if (e) f('fdel').onclick = () => confirmDlg('حذف هذا السجل نهائيًا؟', () => {
+    S.data.entries = S.data.entries.filter(x => x.id !== e.id); persist(); closeModal(sheet); render(); refreshDay(); toast('تم الحذف');
+  }, 'حذف');
+  setTimeout(() => { if (!e) f('ftype').focus(); }, 60);
+}
+
+/* ---------- jump / converter ---------- */
+function openJump() {
+  const h = S.set.view === 'h', names = h ? HM : GM, lo = h ? Y0 : 1883, hi = h ? Y1 : 2173;
+  let y = S.view.y;
+  const s = openModal('<div class="shead"><div><h2>الانتقال إلى شهر</h2><div class="sub">' + (h ? 'السنة الهجرية' : 'السنة الميلادية') + '</div></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div class="step"><button id="jp" aria-label="السنة السابقة">›</button><b id="jy"></b><button id="jn" aria-label="السنة التالية">‹</button></div>' +
+    '<div id="jm" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px"></div>' +
+    '<div class="btns"><button class="btn sec" id="jt">اليوم</button></div>');
+  const draw = () => {
+    $('#jy', s).textContent = y;
+    $('#jm', s).innerHTML = names.map((nm, i) => '<button class="btn ' + (y === S.view.y && i + 1 === S.view.m ? '' : 'sec') + '" style="min-width:0;padding:12px 4px;font-size:15px" data-m="' + (i + 1) + '">' + nm + '</button>').join('');
+    $$('#jm button', s).forEach(b => b.onclick = () => { S.view = { y, m: +b.dataset.m }; closeModal(s); render(); });
+  };
+  $('#jp', s).onclick = () => { y = Math.max(lo, y - 1); draw(); };
+  $('#jn', s).onclick = () => { y = Math.min(hi, y + 1); draw(); };
+  $('#jt', s).onclick = () => { closeModal(s); gotoToday(); };
+  draw();
+}
+function openConv() {
+  const n0 = todayN(), h0 = hij(n0, S.set.off);
+  const s = openModal('<div class="shead"><div><h2>تحويل التاريخ</h2><div class="sub">وفق تقويم أم القرى (مع التعديل الحالي: ' + (S.set.off > 0 ? '+' : '') + S.set.off + ' يوم)</div></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div class="conv"><b>من ميلادي إلى هجري</b><input type="date" id="cg" value="' + iso(n0) + '" min="' + MIN_ISO + '" max="' + MAX_ISO + '" style="margin-top:8px"><div class="res" id="cr1"></div><button class="btn sm sec" id="cgo1">اذهب إلى هذا اليوم</button></div>' +
+    '<div class="conv"><b>من هجري إلى ميلادي</b><div class="row2" style="margin-top:8px"><input type="text" class="ltr" id="chd" inputmode="numeric" placeholder="اليوم" value="' + h0.d + '"><input type="text" class="ltr" id="chy" inputmode="numeric" placeholder="السنة" value="' + h0.y + '"></div>' +
+    '<select id="chm" style="margin-top:8px">' + HM.map((m, i) => '<option value="' + (i + 1) + '"' + (i + 1 === h0.m ? ' selected' : '') + '>' + m + '</option>').join('') + '</select><div class="res" id="cr2"></div><button class="btn sm sec" id="cgo2">اذهب إلى هذا اليوم</button></div>');
+  let t1 = n0, t2 = n0;
+  const c1 = () => { const k = isoToN($('#cg', s).value); if (isNaN(k) || k < MIN_DAY || k > MAX_DAY) { $('#cr1', s).textContent = 'تاريخ غير صالح'; t1 = null; return; } t1 = k; $('#cr1', s).innerHTML = esc(WD[wday(k)] + ' ' + hStr(k)) + '<small>' + esc(gStr(k)) + '</small>'; };
+  const c2 = () => {
+    const d = parseInt(norm($('#chd', s).value), 10), y = parseInt(norm($('#chy', s).value), 10), m = +$('#chm', s).value;
+    if (!(y >= Y0 && y <= Y1) || !(d >= 1)) { $('#cr2', s).textContent = 'أدخل يومًا وسنة صحيحين (السنة من 1300 إلى 1600)'; t2 = null; return; }
+    if (d > hLen(y, m)) { $('#cr2', s).textContent = 'عدد أيام ' + HM[m - 1] + ' ' + y + ' هو ' + hLen(y, m) + ' يومًا'; t2 = null; return; }
+    t2 = hStart(y, m, S.set.off) + d - 1; $('#cr2', s).innerHTML = esc(WD[wday(t2)] + ' ' + gStr(t2)) + '<small>' + esc(d + ' ' + HM[m - 1] + ' ' + y + 'هـ') + '</small>';
+  };
+  ['input', 'change'].forEach(ev => { $('#cg', s).addEventListener(ev, c1); ['#chd', '#chy', '#chm'].forEach(q => $(q, s).addEventListener(ev, c2)); });
+  $('#cgo1', s).onclick = () => { if (t1 != null) { closeModal(s); goToDay(t1, true); } };
+  $('#cgo2', s).onclick = () => { if (t2 != null) { closeModal(s); goToDay(t2, true); } };
+  c1(); c2();
+}
+
+/* ---------- search / list ---------- */
+function openSearch() {
+  let f = 'all';
+  const s = openModal('<div class="shead"><div><h2>بحث وقائمة المهام</h2></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<input type="text" id="sq" placeholder="ابحث بالاسم أو النوع أو الجوال أو الملاحظات" autocomplete="off">' +
+    '<div class="chips" id="sf"><button class="chip on" data-f="all">الكل</button><button class="chip" data-f="wait">لم تنجز</button><button class="chip" data-f="ok">أنجزت</button></div><div id="sres"></div>', { cls: 'full' });
+  const draw = () => {
+    const q = norm($('#sq', s).value).trim().toLowerCase();
+    const list = sortEntries(S.data.entries).filter(e => (f === 'all' || (f === 'ok') === !!e.done) && (!q || [e.type, e.name, e.phone, e.notes].join(' ').toLowerCase().indexOf(q) >= 0));
+    let paid = 0, rem = 0; list.forEach(e => { paid += e.paid || 0; rem += e.rem || 0; });
+    $('#sres', s).innerHTML = '<div class="tot"><span>العدد: <b>' + list.length + '</b></span><span>المدفوع: <b>' + money(paid) + '</b></span><span>المتبقي: <b>' + money(rem) + '</b></span></div>' +
+      (list.slice(0, 300).map(e => { const k = isoToN(e.date); return '<div class="ent' + (e.done ? ' done' : '') + '" data-go="' + k + '"><div class="t"><b>' + esc(e.type || 'بدون نوع') + '</b><span class="pill ' + (e.done ? 'ok' : 'wait') + '">' + (e.done ? 'أنجزت' : 'لم تنجز') + '</span></div><div class="meta">' + esc(hStr(k)) + ' · ' + esc(gStr(k)) + '</div>' +
+        (e.name ? '<div class="meta">' + esc(e.name) + (e.phone ? ' · <span dir="ltr">' + esc(e.phone) + '</span>' : '') + '</div>' : '') +
+        ((e.paid != null || e.rem != null) ? '<div class="money"><span>المدفوع: <b>' + money(e.paid) + '</b></span><span>المتبقي: <b>' + money(e.rem) + '</b></span></div>' : '') + '</div>'; }).join('') || '<div class="empty">لا توجد نتائج</div>') +
+      (list.length > 300 ? '<div class="hint">يتم عرض أول 300 نتيجة — حدّد البحث للمزيد.</div>' : '');
+    $$('[data-go]', s).forEach(el => el.onclick = () => { const k = +el.dataset.go; closeModal(s); goToDay(k, true); openDay(k); });
+  };
+  $('#sq', s).addEventListener('input', draw);
+  $$('#sf .chip', s).forEach(c => c.onclick = () => { f = c.dataset.f; $$('#sf .chip', s).forEach(x => x.classList.toggle('on', x === c)); draw(); });
+  draw();
+}
+
+/* ---------- export / import (Excel 97-2003 .xls) ---------- */
+const HEAD = ['التاريخ الهجري', 'التاريخ الميلادي', 'نوع المناسبة / المهمة', 'اسم صاحب المناسبة / المهمة', 'رقم الجوال', 'المبلغ المدفوع', 'المبلغ المتبقي', 'ملاحظات', 'الحالة'];
+function doExport() {
+  const rows = [HEAD];
+  for (const e of sortEntries(S.data.entries)) {
+    const n = isoToN(e.date);
+    rows.push([hNum(n), e.date, e.type || '', e.name || '', e.phone || '', e.paid == null ? '' : e.paid, e.rem == null ? '' : e.rem, e.notes || '', e.done ? 'أنجزت' : 'لم تنجز']);
+  }
+  let bytes;
+  try { bytes = XLSW.write(rows, { sheetName: 'المهام', widths: [14, 14, 22, 26, 16, 14, 14, 40, 12] }); } catch (err) { toast('تعذّر إنشاء ملف إكسل'); return; }
+  saveBytes('taqwimi-mahaam-' + iso(todayN()) + '.xls', 'application/vnd.ms-excel', bytes);
+  if (!S.data.entries.length) toast('لا توجد بيانات بعد — تم تصدير ملف فارغ بالعناوين فقط');
+}
+const FIELD_RX = [['hijri', /هجري/], ['greg', /ميلادي/], ['phone', /جوال|هاتف|موبايل|محمول|mobile|phone|tel/], ['paid', /مدفوع|دفع|paid/], ['rem', /متبقي|باقي|remain/],
+  ['notes', /ملاحظ|note/], ['done', /انجز|حاله|status|done/], ['type', /نوع|type/], ['name', /اسم|name/], ['date', /تاريخ|date/]];
+const nrm = s => norm(s).replace(/[\u064B-\u065F\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').toLowerCase();
+const isDoneVal = v => /^(انجزت|انجز|منجزه|منجز|تم|نعم|yes|true|done|1|✓|✔)$/.test(nrm(v).trim());
+function parseAnyDate(v, d1904) {
+  if (v === '' || v == null) return NaN;
+  if (typeof v === 'number') return (v > 20000 && v < 90000) ? Math.floor(v) + (d1904 ? 1462 : 0) - 25569 : NaN;
+  const m = norm(String(v)).match(/(\d{1,4})\D+(\d{1,2})\D+(\d{1,4})/);
+  if (!m) return NaN;
+  const a = +m[1], b = +m[2], c = +m[3]; let y, mo, d;
+  if (m[1].length >= 3 || a > 31) { y = a; mo = b; d = c; } else if (m[3].length >= 3 || c > 31) { y = c; mo = b; d = a; } else return NaN;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return NaN;
+  if (y >= Y0 && y <= Y1) return d > hLen(y, mo) ? NaN : hStart(y, mo, S.set.off) + d - 1;
+  if (y >= 1883 && y <= 2173) { const n = dnum(y, mo, d), p = dparts(n); return (p.m === mo && p.d === d) ? n : NaN; }
+  return NaN;
+}
+const entKey = e => [e.date, e.type || '', e.name || '', e.phone || '', e.paid == null ? '' : e.paid, e.rem == null ? '' : e.rem, e.notes || ''].join('|');
+function parseImport(res) {
+  const sh = res.sheets.filter(s => !s.hidden && s.rows.length).sort((a, b) => (b.name === 'المهام') - (a.name === 'المهام'))[0];
+  if (!sh) return { ok: [], bad: 0, dup: 0 };
+  const rows = sh.rows; let hr = -1, map = null;
+  for (let i = 0; i < Math.min(rows.length, 10) && !map; i++) {
+    const m = {}; let cnt = 0;
+    (rows[i] || []).forEach((cell, c) => {
+      if (typeof cell !== 'string' || !cell.trim()) return; const t = nrm(cell);
+      for (const f of FIELD_RX) if (f[1].test(t) && !(f[0] in m)) { m[f[0]] = c; cnt++; break; }
+    });
+    if (cnt >= 2) { hr = i; map = m; }
+  }
+  if (!map) map = { hijri: 0, greg: 1, type: 2, name: 3, phone: 4, paid: 5, rem: 6, notes: 7, done: 8 };
+  const exist = new Set(S.data.entries.map(entKey)), ok = []; let bad = 0, dup = 0;
+  const txt = v => (v == null ? '' : String(v)).trim();
+  for (let r = hr + 1; r < rows.length; r++) {
+    const row = rows[r] || []; if (!row.some(x => x !== '' && x != null)) continue;
+    const g = k => (k in map ? row[map[k]] : undefined);
+    let n = NaN; for (const k of ['greg', 'hijri', 'date']) if (k in map) { n = parseAnyDate(g(k), res.date1904); if (!isNaN(n)) break; }
+    const type = txt(g('type')), name = txt(g('name')), notes = txt(g('notes'));
+    if (isNaN(n) || n < MIN_DAY || n > MAX_DAY || (!type && !name && !notes)) { bad++; continue; }
+    let phone = txt(g('phone')); if (typeof g('phone') === 'number' && /^5\d{8}$/.test(phone)) phone = '0' + phone;
+    const pv = x => { const v = num(x); return (v == null || isNaN(v)) ? null : v; };
+    const e = { id: uid(), ts: Date.now() + ok.length, date: iso(n), type, name, phone: norm(phone), paid: pv(g('paid')), rem: pv(g('rem')), notes, done: isDoneVal(g('done')) };
+    e._dup = exist.has(entKey(e)); if (e._dup) dup++; ok.push(e);
+  }
+  return { ok, bad, dup };
+}
+function importPreview(r, fname) {
+  const fresh = r.ok.filter(e => !e._dup);
+  const s = openModal('<div class="shead"><div><h2>استيراد من Excel</h2><div class="sub" dir="auto">' + esc(fname) + '</div></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div class="tot"><span>صفوف صالحة: <b>' + r.ok.length + '</b></span><span>مكررة: <b>' + r.dup + '</b></span><span>غير صالحة: <b>' + r.bad + '</b></span></div>' +
+    (r.ok.length ? '<div class="btns"><button class="btn" id="ia"' + (fresh.length ? '' : ' disabled') + '>إضافة ' + fresh.length + ' سجل إلى البيانات الحالية</button><button class="btn danger" id="ir">استبدال كل البيانات بـ ' + r.ok.length + ' سجل</button></div><p class="hint" style="line-height:1.7">الصفوف المكررة (نفس التاريخ والنوع والاسم والجوال والمبالغ والملاحظات) تُتجاهل عند الإضافة.</p>'
+      : '<div class="err">لم يتم العثور على بيانات صالحة. تأكد أن الصف الأول يحتوي على عناوين الأعمدة (مثل: التاريخ الميلادي، نوع المناسبة / المهمة، اسم صاحب المناسبة / المهمة …) وأن التاريخ مكتوب بصيغة مثل 2026-10-09 أو 1448/04/28.</div><div class="btns"><button class="btn sec" data-act="close">إغلاق</button></div>'));
+  const clean = e => { const c = Object.assign({}, e); delete c._dup; return c; };
+  const done = msg => { persist(); closeModal(s); render(); refreshDay(); toast(msg); };
+  if (r.ok.length) {
+    $('#ia', s).onclick = () => { fresh.forEach(e => S.data.entries.push(clean(e))); done('تمت إضافة ' + fresh.length + ' سجل'); };
+    $('#ir', s).onclick = () => confirmDlg('سيتم حذف كل بياناتك الحالية واستبدالها بمحتوى الملف. هل تريد المتابعة؟', () => { S.data.entries = r.ok.map(clean); done('تم استبدال البيانات (' + r.ok.length + ' سجل)'); }, 'استبدال');
+  }
+}
+function handleFile(f) {
+  const go = buf => {
+    try { const res = XLSR.read(new Uint8Array(buf)); importPreview(parseImport(res), f.name); }
+    catch (err) { toast(err && err.message ? err.message : 'تعذّر قراءة الملف'); }
+  };
+  if (f.arrayBuffer) f.arrayBuffer().then(go, () => toast('تعذّر فتح الملف'));
+  else { const fr = new FileReader(); fr.onload = () => go(fr.result); fr.onerror = () => toast('تعذّر فتح الملف'); fr.readAsArrayBuffer(f); }
+}
+
+/* ---------- settings ---------- */
+function openSettings() {
+  const c = S.set.colors;
+  const s = openModal('<div class="shead"><div><h2>الإعدادات</h2><div class="sub" dir="auto">' + esc(S.user.name) + ' · @' + esc(S.user.username) + '</div></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div>' +
+    '<div class="sec-t">التقويم</div><label class="f">تعديل التاريخ الهجري (زيادة / إنقاص أيام)</label>' +
+    '<div class="step num"><button id="om" aria-label="إنقاص يوم">−</button><b id="ov"></b><button id="op" aria-label="زيادة يوم">+</button></div><div class="hint" id="oh" style="text-align:center"></div>' +
+    '<label class="f">طريقة عرض الشهر</label><div class="seg" id="sv"><button data-v="h">شهر هجري</button><button data-v="g">شهر ميلادي</button></div>' +
+    '<label class="f">ألوان الخلايا</label><div class="colors"><label>فارغة<input type="color" id="k1" value="' + c.empty + '"></label><label>مسجّلة<input type="color" id="k2" value="' + c.reg + '"></label><label>منجزة<input type="color" id="k3" value="' + c.done + '"></label><button class="btn sec sm" id="kr">استعادة الافتراضي</button></div>' +
+    '<div class="sec-t">البيانات</div><div class="btns" style="margin-top:6px"><button class="btn sec" id="sx">تصدير إلى Excel 97-2003</button><button class="btn sec" id="si">استيراد من Excel 97-2003</button></div>' +
+    '<div class="btns" style="margin-top:8px"><button class="btn danger" id="sd">حذف كل البيانات</button></div>' +
+    '<div class="sec-t">الحساب والأمان</div><div class="btns" style="margin-top:6px"><button class="btn sec" id="sp">تغيير الرقم السري</button><button class="btn sec" id="spw">تغيير كلمة المرور</button></div>' +
+    '<div class="btns" style="margin-top:8px"><button class="btn ghost" id="sl">قفل التطبيق الآن</button><button class="btn ghost" id="slo">تسجيل الخروج</button></div>' +
+    '<p class="hint" style="margin-top:18px;line-height:1.8">تقويمي – مهام · الإصدار ' + VERSION + '<br>تُحفظ بياناتك على هذا الجهاز فقط. التاريخ الهجري وفق تقويم أم القرى (1300 – 1600هـ).</p>');
+  const pv = () => {
+    const o = S.set.off; $('#ov', s).textContent = (o > 0 ? '+' : o < 0 ? '−' : '') + Math.abs(o);
+    $('#oh', s).textContent = 'اليوم: ' + hStr(todayN());
+    $$('#sv button', s).forEach(b => b.classList.toggle('on', b.dataset.v === S.set.view));
+  };
+  const setOff = d => { S.set.off = Math.max(-30, Math.min(30, S.set.off + d)); persist(); render(); pv(); };
+  $('#om', s).onclick = () => setOff(-1); $('#op', s).onclick = () => setOff(1);
+  $$('#sv button', s).forEach(b => b.onclick = () => { S.set.view = b.dataset.v; S.view = viewFor(S.sel != null ? S.sel : todayN()); persist(); render(); pv(); });
+  [['k1', 'empty'], ['k2', 'reg'], ['k3', 'done']].forEach(p => $('#' + p[0], s).addEventListener('input', ev => { S.set.colors[p[1]] = ev.target.value; applyColors(); }));
+  [['k1', 'empty'], ['k2', 'reg'], ['k3', 'done']].forEach(p => $('#' + p[0], s).addEventListener('change', persist));
+  $('#kr', s).onclick = () => { S.set.colors = Object.assign({}, DEF_COLORS); applyColors(); persist(); $('#k1', s).value = DEF_COLORS.empty; $('#k2', s).value = DEF_COLORS.reg; $('#k3', s).value = DEF_COLORS.done; };
+  $('#sx', s).onclick = doExport;
+  $('#si', s).onclick = () => $('#file').click();
+  $('#sd', s).onclick = () => confirmDlg('سيتم حذف جميع المناسبات والمهام المسجلة في هذا الحساب نهائيًا. يُنصح بتصديرها إلى Excel أولًا. هل تريد المتابعة؟', () => { S.data.entries = []; persist(); render(); toast('تم حذف كل البيانات'); }, 'حذف الكل');
+  $('#sp', s).onclick = () => openPinForm({});
+  $('#spw', s).onclick = () => openPwForm();
+  $('#sl', s).onclick = () => lockNow(false);
+  $('#slo', s).onclick = () => lockNow(true);
+  pv();
+}
+
+/* ---------- account: PIN / password ---------- */
+function updateUser(patch) {
+  const us = users(), i = us.findIndex(x => x.id === S.user.id); if (i < 0) return false;
+  Object.assign(us[i], patch); Object.assign(S.user, patch); return saveUsers(us);
+}
+const pwOk = (u, pw) => SHA.salted(pw, u.salt) === u.hash;
+function openPinForm(o) {
+  const s = openModal('<div class="shead"><div><h2>' + (o.reset ? 'تعيين رقم سري جديد' : 'تغيير الرقم السري') + '</h2></div>' + (o.reset ? '' : '<button class="x" data-act="close" aria-label="إغلاق">×</button>') + '</div><div id="perr"></div>' +
+    (o.reset ? '' : '<label class="f">كلمة المرور الحالية</label><input type="password" id="pc" autocomplete="current-password">') +
+    '<label class="f">الرقم السري الجديد (4 – 8 أرقام)</label><input type="password" class="ltr" inputmode="numeric" id="pn" maxlength="8" autocomplete="off">' +
+    '<label class="f">تأكيد الرقم السري الجديد</label><input type="password" class="ltr" inputmode="numeric" id="pn2" maxlength="8" autocomplete="off">' +
+    '<div class="btns"><button class="btn" id="ps">حفظ</button>' + (o.reset ? '' : '<button class="btn sec" data-act="close">إلغاء</button>') + '</div>', { lock: true });
+  $('#ps', s).onclick = () => {
+    const err = m => { $('#perr', s).innerHTML = '<div class="err">' + esc(m) + '</div>'; };
+    if (!o.reset && !pwOk(S.user, $('#pc', s).value)) return err('كلمة المرور الحالية غير صحيحة.');
+    const a = norm($('#pn', s).value).trim(), b = norm($('#pn2', s).value).trim();
+    if (!/^\d{4,8}$/.test(a)) return err('الرقم السري يجب أن يتكون من 4 إلى 8 أرقام.');
+    if (a !== b) return err('تأكيد الرقم السري غير مطابق.');
+    const salt = SHA.newSalt();
+    updateUser({ pinSalt: salt, pinHash: SHA.salted(a, salt), pinLen: a.length }); closeModal(s); toast('تم تغيير الرقم السري');
+  };
+  setTimeout(() => $(o.reset ? '#pn' : '#pc', s).focus(), 60);
+}
+function openPwForm() {
+  const s = openModal('<div class="shead"><div><h2>تغيير كلمة المرور</h2></div><button class="x" data-act="close" aria-label="إغلاق">×</button></div><div id="perr"></div>' +
+    '<label class="f">كلمة المرور الحالية</label><input type="password" id="pc" autocomplete="current-password">' +
+    '<label class="f">كلمة المرور الجديدة (6 أحرف على الأقل)</label><input type="password" id="pn" autocomplete="new-password">' +
+    '<label class="f">تأكيد كلمة المرور الجديدة</label><input type="password" id="pn2" autocomplete="new-password">' +
+    '<div class="btns"><button class="btn" id="ps">حفظ</button><button class="btn sec" data-act="close">إلغاء</button></div>', { lock: true });
+  $('#ps', s).onclick = () => {
+    const err = m => { $('#perr', s).innerHTML = '<div class="err">' + esc(m) + '</div>'; };
+    if (!pwOk(S.user, $('#pc', s).value)) return err('كلمة المرور الحالية غير صحيحة.');
+    const a = $('#pn', s).value;
+    if (a.length < 6) return err('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+    if (a !== $('#pn2', s).value) return err('تأكيد كلمة المرور غير مطابق.');
+    const salt = SHA.newSalt(); updateUser({ salt, hash: SHA.salted(a, salt) }); closeModal(s); toast('تم تغيير كلمة المرور');
+  };
+}
+
+/* ---------- auth screens ---------- */
+const LOGO = '<div class="logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#5a1a6b"/><rect x="11" y="15" width="42" height="38" rx="6" fill="#f2f2f2"/><rect x="11" y="15" width="42" height="11" rx="6" fill="#f49426"/><rect x="11" y="21" width="42" height="5" fill="#f49426"/><rect x="19" y="9" width="4" height="12" rx="2" fill="#f2f2f2"/><rect x="41" y="9" width="4" height="12" rx="2" fill="#f2f2f2"/><path d="M21 40l7 7 15-16" fill="none" stroke="#1f7a3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+function overlay(html) { removeOverlay(); const el = document.createElement('div'); el.className = 'auth'; el.id = 'auth'; el.innerHTML = '<div class="card">' + LOGO + html + '</div>'; document.body.appendChild(el); $('#app').classList.add('hide'); return el; }
+function removeOverlay() { const o = $('#auth'); if (o) o.remove(); }
+const aerr = (el, m) => { $('#aerr', el).innerHTML = '<div class="err">' + esc(m) + '</div>'; };
+
+const needWarn = () => !window.AndroidBridge && !LS.get('tm.nowarn') && (location.protocol === 'file:' || /^(localhost|\[.*\]|\d{1,3}(\.\d{1,3}){3})$/.test(location.hostname));
+function enter(u, after) {
+  S.user = u; S.data = normData(LS.get('tm.d.' + u.id)); S.set = S.data.set; S.sel = null; dayOpen = null;
+  SS.set('tm.s', u.id); LS.set('tm.last', u.id);
+  removeOverlay(); $('#app').classList.remove('hide'); applyColors(); S.view = viewFor(todayN()); render();
+  $('#warn').classList.toggle('hide', !needWarn());
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
+  if (after) after();
+}
+function lockNow(logout) {
+  closeAll(); toggleMenu(false);
+  const u = S.user; S.user = null; S.data = null; S.set = null; dayOpen = null;
+  SS.del('tm.s'); $('#grid').innerHTML = '';
+  if (!logout && u) showLock(u); else showLogin();
+}
+function showRegister(first) {
+  const el = overlay('<h2>إنشاء حساب</h2><p class="d">' + (first ? 'مرحبًا بك في تقويمي – مهام. أنشئ حسابك وحدد رقمًا سريًا للدخول.' : 'أنشئ حسابًا جديدًا على هذا الجهاز') + '</p><div id="aerr"></div>' +
+    '<label for="rn">الاسم</label><input type="text" id="rn" autocomplete="name" maxlength="40">' +
+    '<label for="rus">اسم المستخدم</label><input type="text" class="ltr" id="rus" autocomplete="username" autocapitalize="none" maxlength="30">' +
+    '<label for="rp1">كلمة المرور (6 أحرف على الأقل)</label><input type="password" id="rp1" autocomplete="new-password">' +
+    '<label for="rp2">تأكيد كلمة المرور</label><input type="password" id="rp2" autocomplete="new-password">' +
+    '<label for="rpin">الرقم السري للدخول إلى التطبيق (4 – 8 أرقام)</label><input type="password" class="ltr" id="rpin" inputmode="numeric" maxlength="8" autocomplete="off">' +
+    '<label for="rpin2">تأكيد الرقم السري</label><input type="password" class="ltr" id="rpin2" inputmode="numeric" maxlength="8" autocomplete="off">' +
+    '<div class="btns"><button class="btn" id="rgo">إنشاء الحساب</button></div>' + (users().length ? '<button class="lk" id="rback">لدي حساب — تسجيل الدخول</button>' : ''));
+  const go = () => {
+    const nm = $('#rn', el).value.trim(), un = $('#rus', el).value.trim(), p1 = $('#rp1', el).value, p2_ = $('#rp2', el).value, pin = norm($('#rpin', el).value).trim(), pin2 = norm($('#rpin2', el).value).trim();
+    if (un.length < 3 || /\s/.test(un)) return aerr(el, 'اسم المستخدم 3 أحرف على الأقل وبدون مسافات.');
+    if (users().some(x => x.username.toLowerCase() === un.toLowerCase())) return aerr(el, 'اسم المستخدم مستخدم من قبل، اختر اسمًا آخر.');
+    if (p1.length < 6) return aerr(el, 'كلمة المرور يجب ألا تقل عن 6 أحرف.');
+    if (p1 !== p2_) return aerr(el, 'تأكيد كلمة المرور غير مطابق.');
+    if (!/^\d{4,8}$/.test(pin)) return aerr(el, 'الرقم السري يجب أن يتكون من 4 إلى 8 أرقام.');
+    if (pin !== pin2) return aerr(el, 'تأكيد الرقم السري غير مطابق.');
+    const salt = SHA.newSalt(), pinSalt = SHA.newSalt();
+    const u = { id: uid(), username: un, name: nm || un, salt, hash: SHA.salted(p1, salt), pinSalt, pinHash: SHA.salted(pin, pinSalt), pinLen: pin.length, created: Date.now() };
+    if (!saveUsers(users().concat([u])) || !LS.set('tm.d.' + u.id, normData({}))) return aerr(el, 'تعذّر حفظ الحساب على الجهاز (التخزين المحلي معطّل في المتصفح).');
+    enter(u);
+  };
+  $('#rgo', el).onclick = go;
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  if ($('#rback', el)) $('#rback', el).onclick = () => showLogin();
+}
+function showLogin(o) {
+  o = o || {};
+  const last = users().find(x => x.id === LS.get('tm.last'));
+  const el = overlay('<h2>تسجيل الدخول</h2><p class="d">' + (o.resetPin ? 'سجّل الدخول بكلمة المرور ثم عيّن رقمًا سريًا جديدًا' : 'أدخل بيانات حسابك') + '</p><div id="aerr"></div>' +
+    '<label for="lus">اسم المستخدم</label><input type="text" class="ltr" id="lus" autocomplete="username" autocapitalize="none" value="' + esc(last ? last.username : '') + '">' +
+    '<label for="lpw">كلمة المرور</label><input type="password" id="lpw" autocomplete="current-password">' +
+    '<div class="btns"><button class="btn" id="lgo">دخول</button></div><button class="lk" id="lnew">إنشاء حساب جديد</button>');
+  const go = () => {
+    const un = $('#lus', el).value.trim().toLowerCase(), pw = $('#lpw', el).value;
+    const u = users().find(x => x.username.toLowerCase() === un);
+    if (!u || !pwOk(u, pw)) return aerr(el, 'اسم المستخدم أو كلمة المرور غير صحيحة.');
+    enter(u, o.resetPin ? () => openPinForm({ reset: true }) : null);
+  };
+  $('#lgo', el).onclick = go; $('#lnew', el).onclick = () => showRegister(false);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  setTimeout(() => $(last ? '#lpw' : '#lus', el).focus(), 60);
+}
+function showLock(u) {
+  let buf = '', busy = false;
+  const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => '<button data-k="' + k + '">' + k + '</button>').join('') + '<button class="o" data-k="c">مسح</button><button data-k="0">0</button><button class="o" data-k="b" aria-label="حذف">⌫</button>';
+  const el = overlay('<h2>الرقم السري</h2><p class="d">مرحبًا ' + esc(u.name) + '</p><div class="dots" id="dots"></div><div id="aerr"></div><div class="keys">' + keys + '</div>' +
+    '<button class="lk" id="lf">نسيت الرقم السري؟</button><button class="lk" id="lo">تسجيل الدخول بحساب آخر</button>');
+  const dots = () => { $('#dots', el).innerHTML = Array.from({ length: u.pinLen || 4 }, (_, i) => '<i class="' + (i < buf.length ? 'on' : '') + '"></i>').join(''); };
+  const wait = () => { const F = LS.get('tm.fail') || { n: 0, until: 0 }; return Math.max(0, Math.ceil((F.until - Date.now()) / 1000)); };
+  const press = k => {
+    if (!$('#auth') || busy) return;
+    const w = wait(); if (w > 0) { aerr(el, 'محاولات كثيرة خاطئة. حاول بعد ' + w + ' ثانية.'); return; }
+    if (k === 'b') buf = buf.slice(0, -1); else if (k === 'c') buf = ''; else if (buf.length < (u.pinLen || 4)) buf += k;
+    $('#aerr', el).innerHTML = ''; dots();
+    if (buf.length === (u.pinLen || 4)) {
+      busy = true;
+      setTimeout(() => {
+        if (SHA.salted(buf, u.pinSalt) === u.pinHash) { LS.del('tm.fail'); document.removeEventListener('keydown', onKey); enter(u); return; }
+        const F = LS.get('tm.fail') || { n: 0, until: 0 }; F.n++; if (F.n >= 5) { F.until = Date.now() + 30000; F.n = 0; } LS.set('tm.fail', F);
+        buf = ''; busy = false; dots(); const d = $('#dots', el); d.classList.add('bad'); setTimeout(() => d.classList.remove('bad'), 400);
+        aerr(el, F.until > Date.now() ? 'محاولات كثيرة خاطئة. حاول بعد 30 ثانية.' : 'الرقم السري غير صحيح.');
+      }, 30);
+    }
+  };
+  const onKey = e => { if (!$('#dots')) { document.removeEventListener('keydown', onKey); return; } if (/^\d$/.test(e.key)) press(e.key); else if (e.key === 'Backspace') press('b'); else if (e.key === 'Escape') press('c'); };
+  document.addEventListener('keydown', onKey);
+  $$('.keys button', el).forEach(b => b.onclick = () => press(b.dataset.k));
+  $('#lf', el).onclick = () => { document.removeEventListener('keydown', onKey); showLogin({ resetPin: true }); };
+  $('#lo', el).onclick = () => { document.removeEventListener('keydown', onKey); showLogin(); };
+  dots();
+}
+
+/* ---------- wiring ---------- */
+function buildStatic() {
+  $('#wd').innerHTML = WDS.map((w, i) => '<div' + (i === 5 ? ' class="fri"' : '') + '>' + w + '</div>').join('');
+}
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('#menu') && !ev.target.closest('[data-act="menu"]')) toggleMenu(false);
+  const t = ev.target.closest('[data-act]'); if (!t) return;
+  const a = t.dataset.act; if (a === 'none') return;
+  if (!S.user && a !== 'close') return;
+  switch (a) {
+    case 'prev': navMonth(-1); break;
+    case 'next': navMonth(1); break;
+    case 'prevY': navYear(-1); break;
+    case 'nextY': navYear(1); break;
+    case 'today': gotoToday(); break;
+    case 'menu': toggleMenu(); break;
+    case 'add': openForm({ date: S.sel != null ? S.sel : todayN() }); break;
+    case 'conv': openConv(); break;
+    case 'jump': openJump(); break;
+    case 'day': openDay(+t.dataset.n); break;
+    case 'close': closeModal(t.closest('.sheet')); break;
+    case 'edit': openForm({ id: t.dataset.id }); break;
+    case 'toggle': { const e = S.data.entries.find(x => x.id === t.dataset.id); if (e) { e.done = !e.done; e.upd = Date.now(); persist(); render(); refreshDay(); } break; }
+    case 'addDay': openForm({ date: +t.dataset.n }); break;
+    case 'search': openSearch(); break;
+    case 'settings': openSettings(); break;
+    case 'export': doExport(); break;
+    case 'exportNow': doExport(); break;
+    case 'warnx': LS.set('tm.nowarn', 1); $('#warn').classList.add('hide'); break;
+    case 'import': $('#file').click(); break;
+    case 'lock': lockNow(false); break;
+    case 'logout': lockNow(true); break;
+  }
+});
+$('#file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f && S.user) handleFile(f); });
+document.addEventListener('keydown', e => {
+  if (!S.user || stack.length || e.target.closest('input,textarea,select')) return;
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cell')) { e.preventDefault(); e.target.click(); return; }
+  if (e.key === 'ArrowLeft') navMonth(1); else if (e.key === 'ArrowRight') navMonth(-1);
+  else if (e.key === 'PageUp') navYear(-1); else if (e.key === 'PageDown') navYear(1); else if (e.key === 't' || e.key === 'T') gotoToday();
+});
+let tx = null, ty = 0;
+$('#grid').addEventListener('touchstart', e => { const t = e.changedTouches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true });
+$('#grid').addEventListener('touchend', e => {
+  if (tx == null) return; const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) navMonth(dx < 0 ? 1 : -1);
+}, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) S.hidden = Date.now();
+  else if (S.user && S.hidden && Date.now() - S.hidden > 5 * 60 * 1000) lockNow(false);
+});
+window.__onBack = () => {
+  if (stack.length) { closeModal(); return true; }
+  const m = $('#menu'); if (m && !m.classList.contains('hide')) { toggleMenu(false); return true; }
+  return false;
+};
+window.__tm = { S: () => S, hij: n => hij(n, 0), todayN };   // small hook used by tests
+
+function init() {
+  buildStatic();
+  const us = users(), u = us.find(x => x.id === LS.get('tm.last')) || null;
+  if (!us.length) { showRegister(true); return; }
+  if (u && SS.get('tm.s') === u.id) { enter(u); return; }
+  if (u) showLock(u); else showLogin();
+}
+init();
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
+})();
+
+</script>
+</body>
+</html>
